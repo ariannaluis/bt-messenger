@@ -16,7 +16,7 @@ class DataCharacteristic extends bleno.Characteristic {
         })
       ]
     });
-
+    
     this.subscribers = [];
     this.data = Buffer.from('Hello from Node.js!', 'utf8');
   }
@@ -29,10 +29,10 @@ class DataCharacteristic extends bleno.Characteristic {
   onWriteRequest(data, offset, withoutResponse, callback) {
     console.log('Write request received:', data.toString());
     this.data = data;
-
-    // notify subscribers of new data
+    
+    // Notify all subscribers of the new data
     this.notifySubscribers(data);
-
+    
     callback(this.RESULT_SUCCESS);
   }
 
@@ -46,7 +46,7 @@ class DataCharacteristic extends bleno.Characteristic {
     this.subscribers = [];
   }
 
-  // send data to all subscribers
+  // Method to send data to all subscribers
   notifySubscribers(data) {
     if (this.subscribers.length > 0) {
       console.log('Notifying subscribers:', data.toString());
@@ -56,45 +56,45 @@ class DataCharacteristic extends bleno.Characteristic {
     }
   }
 
-  // update and modify
+  // Method to update data and notify
   updateData(newData) {
     this.data = Buffer.from(newData, 'utf8');
     this.notifySubscribers(this.data);
   }
 }
 
-// create characteristic instance
+// Create the characteristic instance
 const dataCharacteristic = new DataCharacteristic();
 
-// create and start BLE service
-const primaryService = new bleno.PrimarySerrvice({
+// Create and start the BLE service
+const primaryService = new bleno.PrimaryService({
   uuid: SERVICE_UUID,
   characteristics: [dataCharacteristic]
 });
 
-// set up bleno event listeners
+// Set up bleno event listeners
 bleno.on('stateChange', (state) => {
   console.log('Bleno state changed to:', state);
-
+  
   if (state === 'poweredOn') {
     console.log('Starting advertising...');
     bleno.startAdvertising('NodeJS-BLE-Server', [SERVICE_UUID]);
-  } else{
+  } else {
     console.log('Stopping advertising...');
     bleno.stopAdvertising();
   }
 });
 
 bleno.on('advertisingStart', (error) => {
-  if(error) {
+  if (error) {
     console.error('Failed to start advertising:', error);
   } else {
     console.log('Advertising started successfully');
     console.log('Service UUID:', SERVICE_UUID);
     console.log('Characteristic UUID:', CHARACTERISTIC_UUID);
-
+    
     bleno.setServices([primaryService], (error) => {
-      if(error) {
+      if (error) {
         console.error('Failed to set services:', error);
       } else {
         console.log('Services set successfully');
@@ -111,7 +111,7 @@ bleno.on('disconnect', (clientAddress) => {
   console.log('Client disconnected:', clientAddress);
 });
 
-// interactive terminal - send data to capacitor app
+// Interactive terminal input to send data to Capacitor app
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -121,13 +121,13 @@ console.log('\n=== Node.js BLE Server Started ===');
 console.log('Commands:');
 console.log('  - Type any message to send to Capacitor app');
 console.log('  - Type "exit" to quit');
-console.log('=============================================\n');
+console.log('=====================================\n');
 
-function promptForInput(){
+function promptForInput() {
   rl.question('Enter message to send: ', (input) => {
     const command = input.trim();
-
-    if(command.toLowerCase() === 'exit') {
+    
+    if (command.toLowerCase() === 'exit') {
       console.log('Shutting down...');
       bleno.stopAdvertising();
       rl.close();
@@ -135,24 +135,24 @@ function promptForInput(){
       return;
     }
     
-    if(command) {
-      console.log('Sending: "${command}"');
+    if (command) {
+      console.log(`Sending: "${command}"`);
       dataCharacteristic.updateData(command);
     }
-
+    
     promptForInput();
   });
 }
 
-// start input loop after short delay
+// Start the input loop after a short delay
 setTimeout(() => {
   promptForInput();
 }, 1000);
 
-// handle process termination
+// Handle process termination
 process.on('SIGINT', () => {
   console.log('\nReceived SIGINT, shutting down gracefully...');
-  bleno.stopAdvertising;
+  bleno.stopAdvertising();
   rl.close();
   process.exit(0);
 });
